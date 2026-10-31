@@ -8,14 +8,14 @@
 #include "config.h"
 
 // Two strings written next to each other get joined by the compiler, so with a TOPIC_BASE
-// of "rgb_frog", TOPIC_LIGHT_SET becomes "rgb_frog/light/set". All of this happens
+// of "rgb_dino", TOPIC_LIGHT_SET becomes "rgb_dino/light/set". All of this happens
 // at compile time, so there's no string building while the firmware runs.
 #define TOPIC_AVAILABILITY TOPIC_BASE "/availability"
 #define TOPIC_LIGHT_SET    TOPIC_BASE "/light/set"
 #define TOPIC_LIGHT_STATE  TOPIC_BASE "/light/state"
 #define TOPIC_PIXELS_SET   TOPIC_BASE "/pixels/set"
 
-// The topics for one pixel have its number in the middle, like "rgb_frog/pixel/3/set".
+// The topics for one pixel have its number in the middle, like "rgb_dino/pixel/3/set".
 // "+" is an MQTT wildcard that matches exactly one level of a topic, so the device can
 // subscribe to all of them at once.
 #define TOPIC_PIXEL_PREFIX       TOPIC_BASE "/pixel/"
@@ -43,7 +43,7 @@ static inline bool topicEquals(const char *expected, const char *topic, size_t l
     return strlen(expected) == length && strncmp(expected, topic, length) == 0;
 }
 
-// Reads the pixel number out of a topic like "rgb_frog/pixel/3/set". Returns false if it
+// Reads the pixel number out of a topic like "rgb_dino/pixel/3/set". Returns false if it
 // isn't one of those topics, or if there's no such pixel. The wildcard lets anything through
 // in that position, so the number has to be checked as carefully as any other input.
 static inline bool parsePixelTopic(const char *topic, size_t length, uint8_t *index)

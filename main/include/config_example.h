@@ -21,9 +21,9 @@
 //
 // DEVICE_ID is also the MQTT client ID. A broker only allows one connection per client ID,
 // so two devices sharing one would keep knocking each other off.
-#define DEVICE_ID   "rgb_frog"   // Letters, numbers, and underscores. Must be unique on your broker.
-#define DEVICE_NAME "RGB Frog"   // What Home Assistant calls it
-#define TOPIC_BASE  "rgb_frog"   // Every topic starts with this
+#define DEVICE_ID   "rgb_dino"   // Letters, numbers, and underscores. Must be unique on your broker.
+#define DEVICE_NAME "RGB Dino"   // What Home Assistant calls it
+#define TOPIC_BASE  "rgb_dino"   // Every topic starts with this
 
 // pins
 #define NEO_PIXEL_PIN 14

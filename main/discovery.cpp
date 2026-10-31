@@ -5,7 +5,7 @@
 // It's one JSON message, and this is what it looks like, shortened:
 //
 //   {
-//     "dev":  {"ids":"rgb_frog", "name":"RGB Frog", ...},   the device itself
+//     "dev":  {"ids":"rgb_dino", "name":"RGB Dino", ...},   the device itself
 //     "o":    {"name":"mqtt-rgb-dino", ...},                what software sent this
 //     "cmps": {                                             its components, or entities
 //       "ring": {"p":"light", "schema":"json", ...}

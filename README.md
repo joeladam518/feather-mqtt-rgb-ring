@@ -122,7 +122,7 @@ esp_log_level_set("MQTT", ESP_LOG_DEBUG);
 **Watching MQTT.** Often the quickest way to find a problem is to see what's on the broker:
 
 ```shell
-mosquitto_sub -h <broker> -u <user> -P <password> -v -t 'rgb_frog/#'
+mosquitto_sub -h <broker> -u <user> -P <password> -v -t 'rgb_dino/#'
 ```
 
 **Crashes.** When the firmware crashes it prints a `Guru Meditation Error` and a backtrace, then reboots. If you're
@@ -340,46 +340,46 @@ Published to `<base>/pixel/<n>/state` when that pixel changes, and on connecting
 
 ### Examples
 
-These assume `TOPIC_BASE` is `rgb_frog`. Add `-u <user> -P <password>` if your broker has a login.
+These assume `TOPIC_BASE` is `rgb_dino`. Add `-u <user> -P <password>` if your broker has a login.
 
 ```shell
 # Set the whole ring to a color
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"color":{"r":255,"g":0,"b":0}}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"color":{"r":255,"g":0,"b":0}}'
 
 # Fade to blue over 2 seconds
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"color":{"r":0,"g":0,"b":255},"transition":2}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"color":{"r":0,"g":0,"b":255},"transition":2}'
 
 # Set pixel 3 to green, leaving the others alone
-mosquitto_pub -h <broker> -t rgb_frog/pixel/3/set -m '{"color":{"r":0,"g":255,"b":0}}'
+mosquitto_pub -h <broker> -t rgb_dino/pixel/3/set -m '{"color":{"r":0,"g":255,"b":0}}'
 
 # Dim pixel 3, then switch it off
-mosquitto_pub -h <broker> -t rgb_frog/pixel/3/set -m '{"brightness":40}'
-mosquitto_pub -h <broker> -t rgb_frog/pixel/3/set -m '{"state":"OFF"}'
+mosquitto_pub -h <broker> -t rgb_dino/pixel/3/set -m '{"brightness":40}'
+mosquitto_pub -h <broker> -t rgb_dino/pixel/3/set -m '{"state":"OFF"}'
 
 # Set a pattern of alternating red and blue, fading over 1 second
-mosquitto_pub -h <broker> -t rgb_frog/pixels/set -m '{"colors":["#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff"],"transition":1}'
+mosquitto_pub -h <broker> -t rgb_dino/pixels/set -m '{"colors":["#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff","#ff0000","#0000ff"],"transition":1}'
 
 # Start the color loop
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"colorloop"}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"effect":"colorloop"}'
 
 # Start the rainbow
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"rainbow"}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"effect":"rainbow"}'
 
 # Make it run 4 times as fast, without stopping it
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"speed":4}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"speed":4}'
 
 # Ease into the loop over 5 seconds, then run at half speed
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"colorloop","transition":5,"speed":0.5}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"effect":"colorloop","transition":5,"speed":0.5}'
 
 # Sweep purple around the ring over 2 seconds
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"color":{"r":128,"g":0,"b":255},"effect":"wipe","transition":2}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"color":{"r":128,"g":0,"b":255},"effect":"wipe","transition":2}'
 
 # Turn the ring off, then bring it back
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"state":"OFF"}'
-mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"state":"ON"}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"state":"OFF"}'
+mosquitto_pub -h <broker> -t rgb_dino/light/set -m '{"state":"ON"}'
 
 # Watch everything the device says
-mosquitto_sub -h <broker> -v -t 'rgb_frog/#'
+mosquitto_sub -h <broker> -v -t 'rgb_dino/#'
 ```
 
 ## Home Assistant
@@ -420,17 +420,17 @@ change `DEVICE_ID` or stop the device from running.
 ### Manual setup
 
 If you've turned off MQTT discovery in Home Assistant, you can add it in `configuration.yaml` instead. Don't do this
-with discovery on, or you'll get a duplicate of everything. Replace `rgb_frog` with your `TOPIC_BASE`.
+with discovery on, or you'll get a duplicate of everything. Replace `rgb_dino` with your `TOPIC_BASE`.
 
 ```yaml
 mqtt:
   - light:
       schema: json
       name: Frog ring
-      unique_id: rgb_frog_ring
-      command_topic: rgb_frog/light/set
-      state_topic: rgb_frog/light/state
-      availability_topic: rgb_frog/availability
+      unique_id: rgb_dino_ring
+      command_topic: rgb_dino/light/set
+      state_topic: rgb_dino/light/state
+      availability_topic: rgb_dino/availability
       brightness: true
       flash: false
       supported_color_modes: ["rgb"]
