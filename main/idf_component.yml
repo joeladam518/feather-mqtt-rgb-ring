@@ -1,0 +1,11 @@
+# Libraries that get downloaded from Espressif's component registry on the first build.
+# They end up in managed_components/, and dependencies.lock records the exact versions.
+dependencies:
+  # The minimum ESP-IDF version
+  idf: ">=6.1"
+  # JSON parsing. It has nothing to do with the Arduino framework.
+  bblanchon/arduinojson: "^7.4.3"
+  # The NeoPixel driver
+  espressif/led_strip: "^3.1.1"
+  # The MQTT client, which is a separate component as of ESP-IDF 6
+  espressif/mqtt: "^1.1.0"

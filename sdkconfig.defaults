@@ -1,0 +1,17 @@
+# The settings for this board. sdkconfig gets generated from this on the first build,
+# so after changing anything here, delete sdkconfig and build again.
+
+# Adafruit HUZZAH32 ESP32 Feather (ESP32-WROOM-32E, 4MB flash)
+CONFIG_IDF_TARGET="esp32"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# The image is ~940K, right up against the stock 1M app partition
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# Keep the 1 ms tick the firmware was written against
+CONFIG_FREERTOS_HZ=1000
+
+# Keep the network work on core 0, the lights task has core 1 to itself
+CONFIG_MQTT_TASK_CORE_SELECTION_ENABLED=y
+CONFIG_MQTT_USE_CORE_0=y
