@@ -29,5 +29,6 @@
 #define NEO_PIXEL_PIN 14
 #define NEO_PIXEL_COUNT 12
 
-// How long the color loop and the rainbow take to go all the way around
+// How long the color loop and the rainbow take to go all the way around at speed 1.
+// The speed key in a light command changes this while the device is running.
 #define LOOP_CYCLE_MS 30000

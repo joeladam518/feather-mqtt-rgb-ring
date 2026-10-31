@@ -18,6 +18,11 @@
 // One hour, which also keeps the fade math in LightState inside 32 bits
 #define TRANSITION_MAX_SECONDS 3600.0f
 
+// How much an effect can be slowed down or sped up. The lower limit also keeps 0 out,
+// because LightState divides by the speed.
+#define SPEED_MIN 0.1f
+#define SPEED_MAX 100.0f
+
 // JsonVariantConst is ArduinoJson's type for "a JSON value that I'm only reading",
 // which could turn out to be a string, a number, an object, or anything else.
 
@@ -79,6 +84,23 @@ static bool parseTransition(JsonVariantConst value, uint32_t *transitionMs)
     }
 
     *transitionMs = (uint32_t)(seconds * 1000.0f);
+
+    return true;
+}
+
+// A multiplier on the effect's normal speed, so 2 is twice as fast and 0.5 is half as fast
+static bool parseSpeed(JsonVariantConst value, float *speed)
+{
+    if (!value.is<float>()) {
+        return false;
+    }
+
+    float multiplier = value.as<float>();
+    if (multiplier < SPEED_MIN || multiplier > SPEED_MAX) {
+        return false;
+    }
+
+    *speed = multiplier;
 
     return true;
 }
@@ -232,6 +254,13 @@ bool parseLightCommand(const char *payload, size_t length, LightCommand_t *comma
         }
     }
 
+    if (root["speed"].is<JsonVariantConst>()) {
+        command->hasSpeed = true;
+        if (!parseSpeed(root["speed"], &command->speed)) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -239,7 +268,7 @@ bool parseLightCommand(const char *payload, size_t length, LightCommand_t *comma
 // whole ring. Asking for one here is a mistake, so it gets refused like any other bad value.
 bool parsePixelCommand(const char *payload, size_t length, LightCommand_t *command)
 {
-    return parseLightCommand(payload, length, command) && !command->hasEffect;
+    return parseLightCommand(payload, length, command) && !command->hasEffect && !command->hasSpeed;
 }
 
 // Reads {"colors":["#ff0000",null,...],"transition":2}.
@@ -302,6 +331,7 @@ size_t serializeLightStatus(const LightStatus_t *status, char *output, size_t si
     doc["color_mode"] = "rgb";
     doc["brightness"] = status->brightness;
     doc["effect"] = effectName(status->effect);
+    doc["speed"] = status->speed;
 
     // Creates the nested {"color":{...}} object
     JsonObject color = doc["color"].to<JsonObject>();

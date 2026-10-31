@@ -240,6 +240,7 @@ bytes. A message with an invalid value is ignored completely, and a warning is l
 | `brightness` | 0 to 255 | A master level, applied on top of the color, pattern, or effect |
 | `transition` | 0 to 3600 | Fade time in seconds, decimals are fine |
 | `effect` | `"colorloop"`, `"rainbow"`, `"wipe"`, `"solid"` | |
+| `speed` | 0.1 to 100 | How fast `colorloop` and `rainbow` run. 2 is twice as fast, 0.5 is half as fast |
 
 | You send | What happens |
 |---|---|
@@ -250,14 +251,19 @@ bytes. A message with an invalid value is ignored completely, and a warning is l
 | `effect: wipe` | Sweeps around the ring from pixel 0, one pixel at a time, see below |
 | `effect: solid` | Stops the effect and goes back to the last color or pattern |
 | `brightness` alone | Changes brightness, and the color, pattern, or effect keeps running |
+| `speed` alone | Changes the speed straight away without the colors jumping, and doesn't start an effect or turn the ring on |
 | `state: OFF` | Turns the ring off, remembering the pattern and any effect |
 | `state: ON` alone | Brings back exactly what was showing, including which pixels were off |
 
 `colorloop`, `rainbow`, and `wipe` all turn the ring on if it was off. Going from one effect straight to another eases
 across, the same as starting one.
 
-Without a `transition`, changes are instant, except that an effect eases in over 1 second. The speed of both
-`colorloop` and `rainbow` is `LOOP_CYCLE_MS` in `config.h`, 30 seconds per full cycle by default.
+Without a `transition`, changes are instant, except that an effect eases in over 1 second. A `transition` sent with
+an effect sets how long it takes to ease in, and has nothing to do with how fast the effect then runs.
+
+`speed` sets how fast it runs. At speed 1, a full cycle of `colorloop` or `rainbow` takes `LOOP_CYCLE_MS` from
+`config.h`, 30 seconds by default, so speed 2 takes 15 seconds. The speed is remembered until it's changed, including
+while the ring is off, and goes back to 1 after a power cycle or reset.
 
 If every pixel was switched off one at a time, there's nothing to bring back, so `state: ON` turns them all on with
 their own colors.
@@ -271,8 +277,8 @@ are already showing, nothing visibly happens.
 ### Pixel command
 
 Send to `<base>/pixel/<n>/set`. It takes the same `state`, `color`, `brightness`, and `transition` keys as the ring,
-and the same limit applies. `effect` isn't allowed, and a message with one is ignored. The other pixels aren't
-touched, so any number of pixels can be fading at the same time.
+and the same limit applies. `effect` and `speed` aren't allowed, and a message with either one is ignored. The other
+pixels aren't touched, so any number of pixels can be fading at the same time.
 
 ### Pattern command
 
@@ -309,7 +315,7 @@ brightness still applies.
 Published to `<base>/light/state` after every change, and on connecting.
 
 ```json
-{"state": "ON", "color_mode": "rgb", "brightness": 255, "effect": "solid", "color": {"r": 255, "g": 0, "b": 0}}
+{"state": "ON", "color_mode": "rgb", "brightness": 255, "effect": "solid", "speed": 1, "color": {"r": 255, "g": 0, "b": 0}}
 ```
 
 | Key | Meaning |
@@ -318,6 +324,7 @@ Published to `<base>/light/state` after every change, and on connecting.
 | `color` | The last color set for the whole ring. It's not what's showing during an effect or a pattern |
 | `brightness` | The ring's master level, reported separately, so `color` isn't dimmed by it |
 | `effect` | The running effect, or `solid` |
+| `speed` | The current effect speed, even if no effect is running |
 
 Published to `<base>/pixel/<n>/state` when that pixel changes, and on connecting.
 
@@ -358,6 +365,12 @@ mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"colorloop"}'
 # Start the rainbow
 mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"rainbow"}'
 
+# Make it run 4 times as fast, without stopping it
+mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"speed":4}'
+
+# Ease into the loop over 5 seconds, then run at half speed
+mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"effect":"colorloop","transition":5,"speed":0.5}'
+
 # Sweep purple around the ring over 2 seconds
 mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"color":{"r":128,"g":0,"b":255},"effect":"wipe","transition":2}'
 
@@ -394,6 +407,9 @@ Picking a color while an effect is running breaks it. The Effect list sends `wip
 colors the ring already has. That only shows if something else is on the ring at the time, such as `colorloop`. The
 list goes back to `solid` straight away, because a wipe is a one-off. To sweep in a new color, use the `light.turn_on`
 action with both `rgb_color` and `effect: wipe`.
+
+There's no speed control in Home Assistant, because it isn't part of its light entity. To change the speed, send it
+with the `mqtt.publish` action to `<base>/light/set`.
 
 The Ring shows as unavailable when the device goes offline. The device re-announces itself whenever Home Assistant
 restarts.

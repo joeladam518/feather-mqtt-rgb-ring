@@ -34,8 +34,8 @@ typedef enum LightEffect {
 // wasn't in the message" from "brightness was 0". The value next to each flag only means
 // something when its flag is true.
 //
-// The ring and single pixels both use this. Effects belong to the whole ring, so
-// parsePixelCommand refuses a message with hasEffect set.
+// The ring and single pixels both use this. Effects and their speed belong to the whole
+// ring, so parsePixelCommand refuses a message with hasEffect or hasSpeed set.
 typedef struct LightCommand {
     bool hasState;
     bool on;
@@ -47,6 +47,8 @@ typedef struct LightCommand {
     uint32_t transitionMs;
     bool hasEffect;
     LightEffect_t effect;
+    bool hasSpeed;
+    float speed;
 } LightCommand_t;
 
 // A light command for one pixel
@@ -93,13 +95,14 @@ typedef struct PixelStatus {
     uint8_t brightness;
 } PixelStatus_t;
 
-// What the device reports back about itself. The first four fields describe the whole ring:
+// What the device reports back about itself. The first five fields describe the whole ring:
 // on means at least one pixel is lit, and color is the last color set for the whole ring.
 typedef struct LightStatus {
     bool on;
     RGB_t color;
     uint8_t brightness;
     LightEffect_t effect;
+    float speed;
     PixelStatus_t pixels[NEO_PIXEL_COUNT];
 } LightStatus_t;
 

@@ -52,6 +52,10 @@ private:
     RGB_t color;
     uint8_t brightness;
     LightEffect_t effect;
+    float speed;
+
+    // How long one full cycle of an effect takes at the current speed
+    uint32_t loopCycleMs;
 
     // When the effect started, which is how it knows where it should be in its cycle
     uint32_t loopStartMs;
@@ -66,6 +70,7 @@ private:
     void update(uint32_t nowMs);
     void startFade(uint16_t index, uint32_t durationMs, uint32_t delayMs, uint32_t nowMs);
     void beginPixelChange(bool lightsPixel, uint32_t nowMs);
+    void setSpeed(float newSpeed, uint32_t nowMs);
 
 // Public members can be used by anything
 public:

@@ -102,6 +102,16 @@ static uint8_t blend(uint8_t from, uint8_t to, uint32_t elapsed, uint32_t durati
     return from + ((int32_t)to - from) * (int32_t)elapsed / (int32_t)duration;
 }
 
+// How long one full cycle takes at a speed. commands.cpp keeps the speed above 0, and the
+// check at the end stops a very short LOOP_CYCLE_MS from rounding down to a cycle of 0 ms,
+// which effectColor would divide by.
+static uint32_t cycleMsFor(float speed)
+{
+    uint32_t cycleMs = (uint32_t)(LOOP_CYCLE_MS / speed);
+
+    return cycleMs > 0 ? cycleMs : 1;
+}
+
 //-------------------------------
 // Constructor
 //-------------------------------
@@ -118,6 +128,8 @@ LightState::LightState(void):
     color{255, 255, 255},
     brightness(255),
     effect(EFFECT_SOLID),
+    speed(1.0f),
+    loopCycleMs(cycleMsFor(1.0f)),
     loopStartMs(0)
 {
     for (uint16_t i = 0; i < NEO_PIXEL_COUNT; i++) {
@@ -167,12 +179,12 @@ bool LightState::isAnyPixelLit(void) const
 RGB_t LightState::effectColor(uint16_t index, uint32_t nowMs) const
 {
     // % wraps it around, so the position is always somewhere inside one cycle
-    uint32_t position = (nowMs - loopStartMs) % LOOP_CYCLE_MS;
+    uint32_t position = (nowMs - loopStartMs) % loopCycleMs;
 
     // Converts "how far through the cycle" into "how far around the wheel".
     // The multiply happens first to keep accuracy, and (uint64_t) makes the math
     // 64 bit so that the big number in the middle can't overflow.
-    uint32_t hue = (uint64_t)position * HUE_STEPS / LOOP_CYCLE_MS;
+    uint32_t hue = (uint64_t)position * HUE_STEPS / loopCycleMs;
 
     // The loop gives every pixel the same color. The rainbow is the same thing with each
     // pixel starting a little further around the wheel, so the whole wheel fits on the
@@ -289,6 +301,21 @@ void LightState::beginPixelChange(bool lightsPixel, uint32_t nowMs)
     }
 }
 
+// Changes how fast an effect runs.
+//
+// The effect's position comes from dividing the time it's been running by the cycle length,
+// so changing the length alone would move it somewhere else on the wheel, and the colors
+// would jump. Moving loopStartMs keeps it the same fraction of the way through its cycle.
+void LightState::setSpeed(float newSpeed, uint32_t nowMs)
+{
+    uint32_t newCycleMs = cycleMsFor(newSpeed);
+    uint32_t position = (nowMs - loopStartMs) % loopCycleMs;
+
+    loopStartMs = nowMs - (uint32_t)((uint64_t)position * newCycleMs / loopCycleMs);
+    loopCycleMs = newCycleMs;
+    speed = newSpeed;
+}
+
 //-------------------------------
 // methods
 //-------------------------------
@@ -303,6 +330,17 @@ void LightState::apply(const LightCommand_t &command, uint32_t nowMs)
     // Whatever happens next starts from what's showing right now.
     // This has to come first, before anything below changes what target() returns.
     update(nowMs);
+
+    if (command.hasSpeed) {
+        setSpeed(command.speed, nowMs);
+    }
+
+    // A message with only a speed changes nothing else. Returning here leaves any fade or
+    // wipe running, where the code below would replace it with an instant change.
+    if (command.hasSpeed && !command.hasState && !command.hasColor && !command.hasBrightness
+        && !command.hasTransition && !command.hasEffect) {
+        return;
+    }
 
     bool effectWasShowing = isEffectShowing();
     LightEffect_t previousEffect = effect;
@@ -474,6 +512,7 @@ LightStatus_t LightState::status(void) const
     current.color = color;
     current.brightness = brightness;
     current.effect = effect;
+    current.speed = speed;
 
     for (uint16_t i = 0; i < NEO_PIXEL_COUNT; i++) {
         current.pixels[i].on = isPixelLit(i);

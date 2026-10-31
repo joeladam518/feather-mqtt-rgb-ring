@@ -8,6 +8,7 @@
 // main() at the bottom is what makes it run, so a new test has to be added there.
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <ArduinoJson.h>
@@ -295,6 +296,167 @@ static void test_switching_effects_does_not_jump(void)
     send(state, START_RAINBOW, 5000);
     CHECK(sameFrame(render(state, 5000), before));
     CHECK(state.status().effect == EFFECT_RAINBOW);
+}
+
+//==============================================================================
+// Speed
+
+// Twice the speed means one cycle in half the time.
+static void test_speed_shortens_the_cycle(void)
+{
+    LightState state;
+    send(state, "{\"effect\":\"colorloop\",\"speed\":2}", 0);
+    CHECK(state.status().speed == 2.0f);
+
+    RGB_t first = ring(state, 2000);
+    CHECK(same(first, ring(state, 2000 + LOOP_CYCLE_MS / 2)));
+    CHECK(!same(first, ring(state, 2000 + LOOP_CYCLE_MS / 4)));
+}
+
+// Half the speed means a full cycle at normal speed is only halfway around.
+static void test_slow_speed_lengthens_the_cycle(void)
+{
+    LightState state;
+    send(state, "{\"effect\":\"colorloop\",\"speed\":0.5}", 0);
+
+    RGB_t first = ring(state, 2000);
+    CHECK(!same(first, ring(state, 2000 + LOOP_CYCLE_MS)));
+    CHECK(same(first, ring(state, 2000 + LOOP_CYCLE_MS * 2)));
+}
+
+// The rainbow takes the same speed.
+static void test_speed_applies_to_the_rainbow(void)
+{
+    LightState state;
+    send(state, "{\"effect\":\"rainbow\",\"speed\":3}", 0);
+
+    Frame first = render(state, 2000);
+    CHECK(sameFrame(first, render(state, 2000 + LOOP_CYCLE_MS / 3)));
+}
+
+// Changing speed mid effect carries on from the same colors, at any speed.
+static void test_changing_speed_does_not_jump(void)
+{
+    const char *speeds[] = {"{\"speed\":4}", "{\"speed\":0.25}", "{\"speed\":100}", "{\"speed\":0.1}", "{\"speed\":1}"};
+    LightState state;
+    send(state, START_RAINBOW, 0);
+
+    uint32_t now = 7000;
+    for (const char *json : speeds) {
+        Frame before = render(state, now);
+        send(state, json, now);
+        Frame after = render(state, now);
+
+        // Rounding can move a channel slightly, but a real jump would move it a long way
+        for (uint16_t i = 0; i < NEO_PIXEL_COUNT; i++) {
+            CHECK(abs(before.pixels[i].r - after.pixels[i].r) <= 3);
+            CHECK(abs(before.pixels[i].g - after.pixels[i].g) <= 3);
+            CHECK(abs(before.pixels[i].b - after.pixels[i].b) <= 3);
+        }
+
+        now += 1234;
+    }
+
+    CHECK(state.isAnimating());
+    CHECK(state.status().effect == EFFECT_RAINBOW);
+}
+
+// A new speed really does change how fast it's going, it doesn't only move the start.
+static void test_changing_speed_mid_effect_takes_effect(void)
+{
+    LightState state;
+    send(state, START_LOOP, 0);
+    render(state, 5000);
+    send(state, "{\"speed\":2}", 5000);
+
+    RGB_t first = ring(state, 5000);
+    CHECK(same(first, ring(state, 5000 + LOOP_CYCLE_MS / 2)));
+}
+
+// Speed is only a setting, it doesn't start anything or turn the ring on.
+static void test_speed_alone_changes_nothing_else(void)
+{
+    LightState state;
+    send(state, "{\"speed\":2}", 0);
+    CHECK(!state.status().on);
+    CHECK(state.status().effect == EFFECT_SOLID);
+    CHECK(!state.isAnimating());
+
+    // It's waiting for the next effect
+    send(state, START_LOOP, 100);
+    CHECK(state.status().speed == 2.0f);
+    RGB_t first = ring(state, 2100);
+    CHECK(same(first, ring(state, 2100 + LOOP_CYCLE_MS / 2)));
+}
+
+// Speed survives off and on, and stopping the effect.
+static void test_speed_is_remembered(void)
+{
+    LightState state;
+    send(state, "{\"effect\":\"colorloop\",\"speed\":2}", 0);
+    send(state, RING_OFF, 5000);
+    send(state, RING_ON, 6000);
+    CHECK(state.status().speed == 2.0f);
+
+    send(state, SET_RED, 7000);
+    send(state, START_RAINBOW, 8000);
+    CHECK(state.status().speed == 2.0f);
+}
+
+// Changing the speed mustn't cut a fade or wipe short.
+static void test_speed_leaves_a_fade_running(void)
+{
+    LightState state;
+    send(state, "{\"color\":{\"r\":200,\"g\":0,\"b\":0},\"transition\":2}", 0);
+    send(state, "{\"speed\":2}", 500);
+    CHECK(state.isAnimating());
+    CHECK(ring(state, 1000).r == 100);
+}
+
+// The rest of the message still works when it comes with a speed.
+static void test_speed_with_a_color(void)
+{
+    LightState state;
+    send(state, "{\"color\":{\"r\":255,\"g\":0,\"b\":0},\"speed\":3}", 0);
+    CHECK(allAre(state, RED, 0));
+    CHECK(state.status().speed == 3.0f);
+}
+
+// A transition and a speed together: the ease in takes as long as it's told, and the effect
+// underneath runs at the new speed.
+static void test_speed_with_a_transition(void)
+{
+    LightState state;
+    send(state, SET_BLUE, 0);
+    send(state, "{\"effect\":\"colorloop\",\"speed\":2,\"transition\":5}", 1000);
+    CHECK(allAre(state, BLUE, 1000));
+
+    // Still easing in partway through
+    RGB_t easing = ring(state, 3500);
+    CHECK(easing.b > 0);
+
+    // Once it's done, a cycle takes half the normal time
+    RGB_t first = ring(state, 7000);
+    CHECK(same(first, ring(state, 7000 + LOOP_CYCLE_MS / 2)));
+}
+
+// Speed is checked as carefully as anything else from the network.
+static void test_rejects_bad_speeds(void)
+{
+    CHECK(rejects("{\"speed\":0}"));
+    CHECK(rejects("{\"speed\":-1}"));
+    CHECK(rejects("{\"speed\":0.05}"));
+    CHECK(rejects("{\"speed\":101}"));
+    CHECK(rejects("{\"speed\":\"fast\"}"));
+    CHECK(rejects("{\"speed\":true}"));
+    CHECK(rejects("{\"speed\":null}"));
+
+    CHECK(parse("{\"speed\":0.1}").hasSpeed);
+    CHECK(parse("{\"speed\":100}").speed == 100.0f);
+
+    LightCommand_t command = {};
+    const char *json = "{\"speed\":2}";
+    CHECK(!parsePixelCommand(json, strlen(json), &command));
 }
 
 // A color breaks the rainbow the same way as the loop.
@@ -1241,6 +1403,7 @@ static void test_status_is_what_home_assistant_expects(void)
     status.color = {1, 2, 3};
     status.brightness = 200;
     status.effect = EFFECT_COLORLOOP;
+    status.speed = 2.5f;
 
     char output[256];
     CHECK(serializeLightStatus(&status, output, sizeof(output)) > 0);
@@ -1250,6 +1413,7 @@ static void test_status_is_what_home_assistant_expects(void)
     CHECK(strcmp(doc["state"], "ON") == 0);
     CHECK(strcmp(doc["color_mode"], "rgb") == 0);
     CHECK(strcmp(doc["effect"], "colorloop") == 0);
+    CHECK(doc["speed"] == 2.5f);
     CHECK(doc["brightness"] == 200);
     CHECK(doc["color"]["r"] == 1);
     CHECK(doc["color"]["g"] == 2);
@@ -1268,6 +1432,7 @@ static void test_status_round_trips_through_the_parser(void)
     status.on = false;
     status.color = {9, 8, 7};
     status.brightness = 42;
+    status.speed = 0.5f;
 
     char output[256];
     size_t length = serializeLightStatus(&status, output, sizeof(output));
@@ -1277,6 +1442,7 @@ static void test_status_round_trips_through_the_parser(void)
     CHECK(command.hasState && !command.on);
     CHECK(same(command.color, status.color));
     CHECK(command.brightness == 42);
+    CHECK(command.speed == 0.5f);
 }
 
 // If it won't fit, send nothing instead of JSON that got cut off.
@@ -1386,6 +1552,17 @@ int main(void)
     test_rainbow_offsets_and_wraps();
     test_rainbow_rotates();
     test_switching_effects_does_not_jump();
+    test_speed_shortens_the_cycle();
+    test_slow_speed_lengthens_the_cycle();
+    test_speed_applies_to_the_rainbow();
+    test_changing_speed_does_not_jump();
+    test_changing_speed_mid_effect_takes_effect();
+    test_speed_alone_changes_nothing_else();
+    test_speed_is_remembered();
+    test_speed_leaves_a_fade_running();
+    test_speed_with_a_color();
+    test_speed_with_a_transition();
+    test_rejects_bad_speeds();
     test_color_breaks_the_rainbow();
     test_wipe_goes_around_the_ring_in_order();
     test_wipe_length();
