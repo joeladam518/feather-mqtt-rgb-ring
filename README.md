@@ -369,23 +369,6 @@ mosquitto_pub -h <broker> -t rgb_frog/light/set -m '{"state":"ON"}'
 mosquitto_sub -h <broker> -v -t 'rgb_frog/#'
 ```
 
-## Updating an app from the old format
-
-The old topics and payloads are gone. An app using them will stop working until it's updated.
-
-| Old | New |
-|---|---|
-| `SUB_SET_COLOR` with `{"r":255,"g":0,"b":0}` | `<base>/light/set` with `{"color":{"r":255,"g":0,"b":0}}` |
-| `"time": 100` (counted 10 ms steps, so 1 second) | `"transition": 1` (seconds) |
-| `SUB_GET_COLOR`, then read `PUB_GET_COLOR` | Subscribe to `<base>/light/state`, it's retained and updates itself |
-| Nothing | Start an effect with `{"effect":"colorloop"}` or `{"effect":"rainbow"}` |
-| Nothing | Set single pixels on `<base>/pixel/<n>/set`, or a pattern on `<base>/pixels/set` |
-| Nothing | Subscribe to `<base>/availability` to see if the device is online |
-
-Your app should subscribe to the `state` topics and update its display from them, not assume a command worked.
-
-TLS and the `MQTT_SECURE` code are gone too. The device connects with plain MQTT, with an optional login.
-
 ## Home Assistant
 
 The device announces itself using
