@@ -7,4 +7,4 @@ set(EXTRA_COMPONENT_DIRS src)
 
 # Pulls in ESP-IDF's build system. IDF_PATH gets set by running export.sh.
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(mqtt-rgb-dino)
+project(feather-mqtt-rgb-ring)

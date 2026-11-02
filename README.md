@@ -1,4 +1,4 @@
-# mqtt-rgb-dino
+# feather-mqtt-rgb-ring
 
 An MQTT powered 12 pixel NeoPixel ring. It does three things:
 
