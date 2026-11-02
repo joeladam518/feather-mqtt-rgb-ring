@@ -1,4 +1,4 @@
-# Tells ESP-IDF what's in this component. "main" is the component that holds the app itself.
+# Tells ESP-IDF what's in this component. "src" is the component that holds the app itself.
 idf_component_register(
     # Every .cpp file to compile. A new file has to be added here, or it won't be built.
     SRCS
@@ -10,8 +10,8 @@ idf_component_register(
         "mqtt.cpp"
         "NeoPixelRing.cpp"
         "wifi.cpp"
-    # Where #include looks for our own headers
-    INCLUDE_DIRS "include"
+    # Where #include looks for our own headers, which sit next to the .cpp files
+    INCLUDE_DIRS "."
     # The parts of ESP-IDF this code uses. Components downloaded through
     # idf_component.yml, like mqtt and led_strip, don't need to be listed here.
     REQUIRES

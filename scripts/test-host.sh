@@ -22,21 +22,23 @@ fi
 output="$(mktemp -d)"
 trap 'rm -rf "$output"' EXIT
 
-# Copy the headers so your real config.h can't be picked up instead of the test one
-mkdir "$output/include"
-cp "$root"/main/include/*.h "$output/include/"
-rm -f "$output/include/config.h"
+# Copy the code so your real config.h can't be picked up instead of the test one. The headers sit
+# next to the .cpp files, and #include "..." looks in the file's own folder first, so the .cpp files
+# have to be copied too, not just the headers.
+mkdir "$output/src"
+cp "$root"/src/*.h "$root"/src/*.cpp "$output/src/"
+rm -f "$output/src/config.h"
 
 # -fsanitize adds run time checks that fail the test on memory bugs (like reading past the
 # end of a buffer) and undefined behaviour, which might otherwise go unnoticed.
 # -isystem hides warnings that come from inside ArduinoJson.
 c++ -std=c++17 -Wall -Wextra -g \
     -fsanitize=address,undefined -fno-sanitize-recover=undefined \
-    -I"$root/test/host" -I"$output/include" -isystem "$json" \
+    -I"$root/test/host" -I"$output/src" -isystem "$json" \
     "$root/test/host/tests.cpp" \
-    "$root/main/commands.cpp" \
-    "$root/main/discovery.cpp" \
-    "$root/main/LightState.cpp" \
+    "$output/src/commands.cpp" \
+    "$output/src/discovery.cpp" \
+    "$output/src/LightState.cpp" \
     -o "$output/tests"
 
 "$output/tests"
