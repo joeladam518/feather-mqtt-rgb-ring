@@ -9,5 +9,5 @@ sdkconfig.old
 .vscode/ipch
 
 # ignore config
-main/include/config.h
+src/config.h
 .env

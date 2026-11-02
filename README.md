@@ -58,7 +58,7 @@ If that complains about a missing Python environment, your Python version change
 Create your config, then fill in your wifi, MQTT, and device settings. It's gitignored, so your passwords stay local.
 
 ```shell
-cp main/include/config_example.h main/include/config.h
+cp src/config_example.h src/config.h
 ```
 
 `DEVICE_ID` has to be different from every other device on your broker, because it's also the MQTT client ID. Two
